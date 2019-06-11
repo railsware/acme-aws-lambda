@@ -72,7 +72,7 @@ module AcmeAwsLambda
     end
 
     def updated_dns_record?(dns_record, resource_records)
-      has_valid_record = false
+      all_records_updated = false
 
       txt_records = begin
         Resolv::DNS.open do |dns|
@@ -85,40 +85,40 @@ module AcmeAwsLambda
       end
 
       unless txt_records.empty?
-        has_valid_record = resource_records.all? do |resource_record|
+        all_records_updated = resource_records.all? do |resource_record|
           txt_records.any? do |txt_record|
             txt_record.include? resource_record
           end
         end
       end
 
-      has_valid_record
+      all_records_updated
     end
 
     def update_dns_records(domain, dns_record, resource_records)
-      hosted_zone = route53_client.list_hosted_zones_by_name({dns_name: "#{domain}."}).hosted_zones[0]
+      hosted_zone = route53_client.list_hosted_zones_by_name(dns_name: "#{domain}.").hosted_zones[0]
 
-      resp = route53_client.change_resource_record_sets({
+      resp = route53_client.change_resource_record_sets(
         change_batch: {
           changes: [
             {
               action: 'UPSERT',
               resource_record_set: {
                 name: dns_record,
-                resource_records: resource_records.map{|rr| {value: rr.inspect}},
+                resource_records: resource_records.map { |rr| { value: rr.inspect } },
                 ttl: 60,
-                type: "TXT"
-              },
+                type: 'TXT'
+              }
             }
           ],
-          comment: "TXT records for ACME validation",
+          comment: 'TXT records for ACME validation'
         },
-        hosted_zone_id: 'Z2LXT5HMDHJE6L' #hosted_zone.id
-      })
+        hosted_zone_id: 'Z2LXT5HMDHJE6L' # hosted_zone.id
+      )
 
       wait_for_route53_change(resp.change_info.id)
 
-      sleep(4) while !updated_dns_record?(dns_record, resource_records)
+      sleep(4) until updated_dns_record?(dns_record, resource_records)
     end
 
     def new_order(domains)
@@ -128,20 +128,18 @@ module AcmeAwsLambda
 
       dns_challengers = authorizations.map do |authorization|
         domain = authorization.domain
-        if authorization.status == 'pending'
-          challenge = authorization.dns
-          {
-            challenge: challenge,
-            domain: domain
-          }
-        else
-          nil
-        end
+        next unless authorization.status == 'pending'
+
+        challenge = authorization.dns
+        {
+          challenge: challenge,
+          domain: domain
+        }
       end.compact
 
-      dns_challengers.group_by{|dns| "#{dns[:challenge].record_name}.#{dns[:domain]}"}.each do |dns_record, records|
+      dns_challengers.group_by { |dns| "#{dns[:challenge].record_name}.#{dns[:domain]}" }.each do |dns_record, records|
         domain = records.first[:domain]
-        resource_records = records.map{|dns| dns[:challenge].record_content }
+        resource_records = records.map { |dns| dns[:challenge].record_content }
         update_dns_records(domain, dns_record, resource_records)
       end
 
@@ -156,7 +154,7 @@ module AcmeAwsLambda
         end
 
         if challenge.status == 'invalid'
-          puts "retry invalid"
+          puts 'retry invalid'
           retry_count = 0
           while challenge.status == 'invalid' && retry_count < 5
             sleep(2)
@@ -197,5 +195,6 @@ module AcmeAwsLambda
     def route53_client
       @route53_client ||= Aws::Route53::Client.new
     end
+
   end
 end
