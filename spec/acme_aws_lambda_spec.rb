@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-RSpec.describe Acme::Aws::Lambda do
+RSpec.describe AcmeAwsLambda do
   it 'has a version number' do
-    expect(Acme::Aws::Lambda::VERSION).not_to be nil
+    expect(AcmeAwsLambda::VERSION).not_to be nil
   end
 
   it 'does something useful' do

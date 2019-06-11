@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'bundler/setup'
-require 'acme/aws/lambda'
+require 'acme_aws_lambda'
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure

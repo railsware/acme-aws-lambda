@@ -2,11 +2,11 @@
 
 lib = File.expand_path('lib', __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'acme/aws/lambda/version'
+require 'acme_aws_lambda/version'
 
 Gem::Specification.new do |spec|
   spec.name          = 'acme-aws-lambda'
-  spec.version       = Acme::Aws::Lambda::VERSION
+  spec.version       = AcmeAwsLambda::VERSION
   spec.authors       = ['Alexey Vasiliev']
   spec.email         = ['leopard.not.a@gmail.com']
 
@@ -38,6 +38,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ['lib']
 
   spec.add_runtime_dependency 'acme-client', '~> 2'
+  spec.add_runtime_dependency 'addressable', '~> 2'
   spec.add_runtime_dependency 'aws-sdk-lambda', '~> 1'
   spec.add_runtime_dependency 'aws-sdk-route53', '~> 1'
   spec.add_runtime_dependency 'aws-sdk-s3', '~> 1'
