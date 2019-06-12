@@ -2,7 +2,6 @@
 
 require 'openssl'
 require 'logger'
-require 'tempfile'
 require 'acme-client'
 
 module AcmeAwsLambda
