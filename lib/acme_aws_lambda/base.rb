@@ -3,12 +3,15 @@
 module AcmeAwsLambda
   module Base
 
-    module_function
+    extend self
 
-    attr_writer :log_level,
+    attr_writer :log_level, :production_mode, :key_size, :contact_email, :domains, :common_name, :renew,
+                :dns_retry_timeout, :dns_retry_count, :cert_retry_timeout, :cert_retry_count,
                 :aws_access_key_id, :aws_secret_access_key, :aws_region,
                 :s3_aws_access_key_id, :s3_aws_secret_access_key, :s3_aws_region, :s3_bucket, :s3_client_key,
-                :route53_aws_access_key_id, :route53_aws_secret_access_key, :route53_aws_region, :route53_domain
+                :s3_certificate_key,
+                :route53_aws_access_key_id, :route53_aws_secret_access_key, :route53_aws_region, :route53_domain,
+                :route53_hosted_zone_id
 
     def configure
       yield self
@@ -16,6 +19,54 @@ module AcmeAwsLambda
 
     def log_level
       @log_level || :info
+    end
+
+    def production_mode
+      @production_mode || true
+    end
+
+    def key_size
+      @key_size || 4096
+    end
+
+    def contact_email
+      @contact_email || raise('contact_email should be defined')
+    end
+
+    def domains
+      @domains || raise('domains should be defined')
+    end
+
+    def common_name
+      @common_name
+    end
+
+    def renew
+      @renew || 30
+    end
+
+    def dns_retry_timeout
+      @dns_retry_timeout || 4
+    end
+
+    def dns_retry_count
+      @dns_retry_count || 15
+    end
+
+    def cert_retry_timeout
+      @cert_retry_timeout || 1
+    end
+
+    def cert_retry_count
+      @cert_retry_count || 10
+    end
+
+    def acme_directory
+      if production_mode
+        'https://acme-v02.api.letsencrypt.org/directory'
+      else
+        'https://acme-staging-v02.api.letsencrypt.org/directory'
+      end
     end
 
     def aws_access_key_id
@@ -27,7 +78,7 @@ module AcmeAwsLambda
     end
 
     def aws_region
-      @aws_region
+      @aws_region || ENV['AWS_REGION']
     end
 
     def s3_aws_access_key_id
@@ -50,6 +101,10 @@ module AcmeAwsLambda
       @s3_client_key || 'acme/client.pem'
     end
 
+    def s3_certificate_key
+      @s3_certificate_key || raise('s3_certificate_key should be defined')
+    end
+
     def route53_aws_access_key_id
       @route53_aws_access_key_id || aws_access_key_id
     end
@@ -64,6 +119,10 @@ module AcmeAwsLambda
 
     def route53_domain
       @route53_domain
+    end
+
+    def route53_hosted_zone_id
+      @route53_hosted_zone_id
     end
 
   end

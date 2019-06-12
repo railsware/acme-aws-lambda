@@ -4,66 +4,67 @@ require 'openssl'
 require 'logger'
 require 'tempfile'
 require 'acme-client'
-require 'aws-sdk-s3'
 
 module AcmeAwsLambda
   class KeyManager
 
-    RESOLVE_TIMEOUT = 3 # 3 seconds to resolve dns requests
+    LOG_LEVELS = {
+      fatal: Logger::FATAL,
+      error: Logger::ERROR,
+      warn: Logger::WARN,
+      info: Logger::INFO,
+      debug: Logger::DEBUG
+    }.freeze
 
-    RESOLVE_ERRORS = [
-      Resolv::ResolvError,
-      Resolv::ResolvTimeout
-    ].freeze
-
-    attr_reader :client, :account, :dns, :csr
+    attr_reader :logger, :route53, :s3
 
     def initialize
       @logger = Logger.new($stdout)
-      @logger.
-
-      aws_config = {
-        credentials: Aws::Credentials.new(ENV['AWS_ACCESS_KEY_ID'], ENV['AWS_SECRET_ACCESS_KEY']),
-        region: ENV['AWS_REGION'],
-        # log_level: :info,
-        logger: Logger.new($stdout),
-        log_level: :debug,
-        http_wire_trace: true
-      }
-
-      Aws.config.update(aws_config)
-      @dns = AcmeAwsLambda::Dns.new
+      @logger.level = LOG_LEVELS[AcmeAwsLambda.log_level]
+      @route53 = AcmeAwsLambda::Route53.new(logger)
+      @s3 = AcmeAwsLambda::S3.new(logger)
+      init_aws_client
     end
 
-    def generate_client_key
-      private_key = OpenSSL::PKey::RSA.new(4096)
-      file = Tempfile.new('client_key')
-      file.write(private_key.to_pem)
-      file.rewind
-      obj = s3_resource.bucket('testing-staging-certs').object('client_key.pem')
-      obj.upload_file(file)
-    ensure
-      file&.close
-      file&.unlink
+    def create_or_renew_cert
+      if certificate_valid?
+        logger.info "Certificate #{AcmeAwsLambda.s3_certificate_key} is still valid. Exiting..."
+        return false
+      end
+
+      new_order
     end
 
-    def new_account
-      private_key_content = s3_client.get_object(
-        bucket: 'testing-staging-certs',
-        key: 'client_key.pem'
-      )
+    def revoke_certificate
+      certificate = s3.certificate
+      return false if certificate.nil?
 
-      private_key = OpenSSL::PKey::RSA.new(private_key_content.body.read)
-      @client = Acme::Client.new(private_key: private_key, directory: 'https://acme-staging-v02.api.letsencrypt.org/directory')
-      @account = client.new_account(contact: 'mailto:a.v@rw.rw', terms_of_service_agreed: true)
+      client.revoke(certificate: certificate)
     end
 
-    def new_order(domains)
-      order = client.new_order(identifiers: domains)
+    private
 
-      authorizations = order.authorizations
+    def certificate_valid?
+      certificate = s3.certificate
+      return false if certificate.nil?
 
-      dns_challengers = authorizations.map do |authorization|
+      renew_at = ::Time.now + 60 * 60 * 24 * AcmeAwsLambda.renew
+      certificate.not_after > renew_at
+    end
+
+    def new_order
+      order = client.new_order(identifiers: AcmeAwsLambda.domains)
+
+      dns_challengers = get_all_dns_challengers(order)
+      update_dns_records(dns_challengers)
+      order_request_validation(dns_challengers)
+
+      certificate = certificate_request(order)
+      s3.save_certificate(certificate)
+    end
+
+    def get_all_dns_challengers(order)
+      order.authorizations.map do |authorization|
         domain = authorization.domain
         next unless authorization.status == 'pending'
 
@@ -73,13 +74,17 @@ module AcmeAwsLambda
           domain: domain
         }
       end.compact
+    end
 
+    def update_dns_records(dns_challengers)
       dns_challengers.group_by { |dns| "#{dns[:challenge].record_name}.#{dns[:domain]}" }.each do |dns_record, records|
-        domain = records.first[:domain]
+        domain = AcmeAwsLambda.route53_domain || records.first[:domain]
         resource_records = records.map { |dns| dns[:challenge].record_content }
-        @dns.update_dns_records(domain, dns_record, resource_records)
+        route53.update_dns_records(domain, dns_record, resource_records)
       end
+    end
 
+    def order_request_validation(dns_challengers)
       dns_challengers.each do |dns_challenger|
         challenge = dns_challenger[:challenge]
 
@@ -90,43 +95,71 @@ module AcmeAwsLambda
           challenge.reload
         end
 
-        if challenge.status == 'invalid'
-          puts 'retry invalid'
-          retry_count = 0
-          while challenge.status == 'invalid' && retry_count < 5
-            sleep(2)
-            challenge.reload
-            retry_count += 1
-            puts "retry invalid: #{challenge.status}, #{retry_count}"
-          end
-        end
+        next if challenge.status == 'valid'
 
-        puts challenge.error unless challenge.status == 'valid'
+        raise_challenge_error(challenge)
       end
+    end
 
-      @csr = Acme::Client::CertificateRequest.new(
-        common_name: domains[0],
-        names: domains
+    def raise_challenge_error(challenge)
+      logger.error 'Error to validate dns challenger'
+      logger.error challenge.error
+      raise('Cannot validate dns challenger')
+    end
+
+    def certificate_request(order)
+      csr = Acme::Client::CertificateRequest.new(
+        common_name: AcmeAwsLambda.common_name || AcmeAwsLambda.domains[0],
+        names: AcmeAwsLambda.domains
       )
       order.finalize(csr: csr)
 
-      sleep(1) while order.status == 'processing'
+      wait_order_to_complete(order)
 
-      [order.certificate, csr]
+      order.certificate
     end
 
-    def revoke_certificate(certificate)
-      client.revoke(certificate: certificate)
+    def wait_order_to_complete(order)
+      check_count = 0
+      while order.status == 'processing'
+        raise('certificate request timeout') if check_count > AcmeAwsLambda.cert_retry_count
+
+        check_count += 1
+        sleep(AcmeAwsLambda.cert_retry_timeout)
+      end
     end
 
-    private
+    def init_aws_client
+      aws_config = {
+        credentials: ::Aws::Credentials.new(
+          AcmeAwsLambda.aws_access_key_id, AcmeAwsLambda.aws_secret_access_key
+        ),
+        region: AcmeAwsLambda.aws_region,
+        logger: logger,
+        log_level: AcmeAwsLambda.log_level
+      }
 
-    def s3_client
-      @s3_client ||= Aws::S3::Client.new
+      aws_config[:http_wire_trace] = true if :debug == AcmeAwsLambda.log_level
+
+      ::Aws.config.update(aws_config)
     end
 
-    def s3_resource
-      @s3_resource ||= Aws::S3::Resource.new
+    def client
+      @client ||= begin
+        private_key = s3.client_key
+        if private_key.nil?
+          private_key = s3.create_and_save_client_key
+          raise('Error to create private key for client') if private_key.nil?
+        end
+        Acme::Client.new(private_key: private_key, directory: AcmeAwsLambda.acme_directory)
+      end
+    end
+
+    def account
+      @account ||= client.new_account(
+        contact: "mailto:#{AcmeAwsLambda.contact_email}",
+        terms_of_service_agreed: true
+      )
     end
 
   end

@@ -70,6 +70,10 @@ Style/SafeNavigation:
     - blank?
     - presence
 
+Style/ModuleFunction:
+  Enabled: true
+  EnforcedStyle: extend_self
+
 Lint/AmbiguousBlockAssociation:
   Exclude:
     - 'spec/**/*'
