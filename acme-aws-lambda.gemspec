@@ -39,7 +39,6 @@ Gem::Specification.new do |spec|
 
   spec.add_runtime_dependency 'acme-client', '~> 2'
   spec.add_runtime_dependency 'addressable', '~> 2'
-  spec.add_runtime_dependency 'aws-sdk-lambda', '~> 1'
   spec.add_runtime_dependency 'aws-sdk-route53', '~> 1'
   spec.add_runtime_dependency 'aws-sdk-s3', '~> 1'
 

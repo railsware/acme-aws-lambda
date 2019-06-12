@@ -3,11 +3,8 @@
 require 'openssl'
 require 'logger'
 require 'tempfile'
-require 'resolv'
-require 'addressable/idna'
 require 'acme-client'
 require 'aws-sdk-s3'
-require 'aws-sdk-route53'
 
 module AcmeAwsLambda
   class KeyManager
@@ -19,13 +16,14 @@ module AcmeAwsLambda
       Resolv::ResolvTimeout
     ].freeze
 
-    attr_reader :client, :account, :csr
+    attr_reader :client, :account, :dns, :csr
 
     def initialize
-      @domains_txt_records = []
+      @logger = Logger.new($stdout)
+      @logger.
 
       aws_config = {
-        credentials: ::Aws::Credentials.new(ENV['AWS_ACCESS_KEY_ID'], ENV['AWS_SECRET_ACCESS_KEY']),
+        credentials: Aws::Credentials.new(ENV['AWS_ACCESS_KEY_ID'], ENV['AWS_SECRET_ACCESS_KEY']),
         region: ENV['AWS_REGION'],
         # log_level: :info,
         logger: Logger.new($stdout),
@@ -33,7 +31,8 @@ module AcmeAwsLambda
         http_wire_trace: true
       }
 
-      ::Aws.config.update(aws_config)
+      Aws.config.update(aws_config)
+      @dns = AcmeAwsLambda::Dns.new
     end
 
     def generate_client_key
@@ -59,68 +58,6 @@ module AcmeAwsLambda
       @account = client.new_account(contact: 'mailto:a.v@rw.rw', terms_of_service_agreed: true)
     end
 
-    def wait_for_route53_change(change_id)
-      status = ''
-      until status == 'INSYNC'
-        resp = route53_client.get_change(id: change_id)
-        status = resp.change_info.status
-        if status != 'INSYNC'
-          puts 'Waiting for dns change to complete'
-          sleep 5
-        end
-      end
-    end
-
-    def updated_dns_record?(dns_record, resource_records)
-      all_records_updated = false
-
-      txt_records = begin
-        Resolv::DNS.open do |dns|
-          dns.timeouts = RESOLVE_TIMEOUT
-          records = dns.getresources(Addressable::IDNA.to_ascii(dns_record), Resolv::DNS::Resource::IN::TXT)
-          records.empty? ? [] : records.map(&:data)
-        end
-      rescue *RESOLVE_ERRORS
-        []
-      end
-
-      unless txt_records.empty?
-        all_records_updated = resource_records.all? do |resource_record|
-          txt_records.any? do |txt_record|
-            txt_record.include? resource_record
-          end
-        end
-      end
-
-      all_records_updated
-    end
-
-    def update_dns_records(domain, dns_record, resource_records)
-      hosted_zone = route53_client.list_hosted_zones_by_name(dns_name: "#{domain}.").hosted_zones[0]
-
-      resp = route53_client.change_resource_record_sets(
-        change_batch: {
-          changes: [
-            {
-              action: 'UPSERT',
-              resource_record_set: {
-                name: dns_record,
-                resource_records: resource_records.map { |rr| { value: rr.inspect } },
-                ttl: 60,
-                type: 'TXT'
-              }
-            }
-          ],
-          comment: 'TXT records for ACME validation'
-        },
-        hosted_zone_id: 'Z2LXT5HMDHJE6L' # hosted_zone.id
-      )
-
-      wait_for_route53_change(resp.change_info.id)
-
-      sleep(4) until updated_dns_record?(dns_record, resource_records)
-    end
-
     def new_order(domains)
       order = client.new_order(identifiers: domains)
 
@@ -140,7 +77,7 @@ module AcmeAwsLambda
       dns_challengers.group_by { |dns| "#{dns[:challenge].record_name}.#{dns[:domain]}" }.each do |dns_record, records|
         domain = records.first[:domain]
         resource_records = records.map { |dns| dns[:challenge].record_content }
-        update_dns_records(domain, dns_record, resource_records)
+        @dns.update_dns_records(domain, dns_record, resource_records)
       end
 
       dns_challengers.each do |dns_challenger|
@@ -190,10 +127,6 @@ module AcmeAwsLambda
 
     def s3_resource
       @s3_resource ||= Aws::S3::Resource.new
-    end
-
-    def route53_client
-      @route53_client ||= Aws::Route53::Client.new
     end
 
   end
