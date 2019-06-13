@@ -12,7 +12,7 @@ module AcmeAwsLambda
       @logger = logger
     end
 
-    def create_and_save_client_key(_file)
+    def create_and_save_client_key
       private_key = OpenSSL::PKey::RSA.new(AcmeAwsLambda.key_size)
       obj = s3_resource.bucket(AcmeAwsLambda.s3_bucket).object(AcmeAwsLambda.s3_client_key)
       obj.write(private_key.to_pem)
