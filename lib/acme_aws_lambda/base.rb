@@ -7,13 +7,14 @@ module AcmeAwsLambda
 
     extend self
 
-    attr_writer :log_level, :log_formatter, :production_mode, :key_size, :contact_email, :domains, :common_name, :renew,
+    attr_writer :log_level, :log_formatter, :production_mode, :key_size, :contact_email,
+                :domains, :common_name, :renew,
                 :dns_retry_timeout, :dns_retry_count, :cert_retry_timeout, :cert_retry_count,
                 :aws_access_key_id, :aws_secret_access_key, :aws_session_token, :aws_region,
-                :s3_aws_access_key_id, :s3_aws_secret_access_key, :s3_aws_session_token, :s3_aws_region, :s3_bucket, :s3_client_key,
-                :s3_certificate_key,
-                :route53_aws_access_key_id, :route53_aws_secret_access_key, :route53_aws_session_token, :route53_aws_region, :route53_domain,
-                :route53_hosted_zone_id
+                :s3_aws_access_key_id, :s3_aws_secret_access_key, :s3_aws_session_token,
+                :s3_aws_region, :s3_bucket, :s3_client_key, :s3_certificates_key,
+                :route53_aws_access_key_id, :route53_aws_secret_access_key, :route53_aws_session_token,
+                :route53_aws_region, :route53_domain, :route53_hosted_zone_id
 
     def configure
       yield self
@@ -115,8 +116,8 @@ module AcmeAwsLambda
       @s3_client_key || 'acme/client.pem'
     end
 
-    def s3_certificate_key
-      @s3_certificate_key || raise('s3_certificate_key should be defined')
+    def s3_certificates_key
+      @s3_certificates_key || raise('s3_certificates_key should be defined')
     end
 
     def route53_aws_access_key_id

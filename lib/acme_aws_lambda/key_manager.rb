@@ -28,7 +28,7 @@ module AcmeAwsLambda
 
     def create_or_renew_cert
       if certificate_valid?
-        logger.info "Certificate #{AcmeAwsLambda.s3_certificate_key} is still valid. Exiting..."
+        logger.info "Certificate #{AcmeAwsLambda.s3_certificates_key}.crt is still valid. Exiting..."
         return false
       end
 
@@ -64,8 +64,8 @@ module AcmeAwsLambda
       update_dns_records(dns_challengers)
       order_request_validation(dns_challengers)
 
-      certificate = certificate_request(order)
-      s3.save_certificate(certificate)
+      common_name, key, crt = certificate_request(order)
+      s3.save_certificates(common_name, key, crt)
     end
 
     def get_all_dns_challengers(order)
@@ -113,15 +113,19 @@ module AcmeAwsLambda
     end
 
     def certificate_request(order)
+      cert_private_key = OpenSSL::PKey::RSA.new(AcmeAwsLambda.key_size)
+      common_name = AcmeAwsLambda.common_name || AcmeAwsLambda.domains[0]
+
       csr = Acme::Client::CertificateRequest.new(
-        common_name: AcmeAwsLambda.common_name || AcmeAwsLambda.domains[0],
-        names: AcmeAwsLambda.domains
+        common_name: common_name,
+        names: AcmeAwsLambda.domains,
+        private_key: cert_private_key
       )
       order.finalize(csr: csr)
 
       wait_order_to_complete(order)
 
-      order.certificate
+      [common_name, cert_private_key.to_pem, order.certificate]
     end
 
     def wait_order_to_complete(order)

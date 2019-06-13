@@ -39,7 +39,7 @@ module AcmeAwsLambda
     def certificate
       response = s3_client.get_object(
         bucket: AcmeAwsLambda.s3_bucket,
-        key: AcmeAwsLambda.s3_certificate_key
+        key: "#{AcmeAwsLambda.s3_certificates_key}.crt"
       )
       ::OpenSSL::X509::Certificate.new(response.body.read)
     rescue Aws::S3::Errors::NoSuchKey, Aws::S3::Errors::NotFound => e
@@ -48,12 +48,20 @@ module AcmeAwsLambda
       nil
     end
 
-    def save_certificate(certificate)
-      obj = s3_resource.bucket(AcmeAwsLambda.s3_bucket).object(AcmeAwsLambda.s3_certificate_key)
+    def save_certificates(common_name, key, crt)
+      filename = common_name || 'cert'
+      obj = s3_resource.bucket(AcmeAwsLambda.s3_bucket).object("#{AcmeAwsLambda.s3_certificates_key}.key")
       obj.put(
         acl: 'private',
-        body: certificate,
-        content_disposition: 'attachment; filename="key.pem"',
+        body: key,
+        content_disposition: "attachment; filename=\"#{filename}.key\"",
+        content_type: 'application/x-pem-file'
+      )
+      obj = s3_resource.bucket(AcmeAwsLambda.s3_bucket).object("#{AcmeAwsLambda.s3_certificates_key}.crt")
+      obj.put(
+        acl: 'private',
+        body: crt,
+        content_disposition: "attachment; filename=\"#{filename}.crt\"",
         content_type: 'application/x-pem-file'
       )
     end
