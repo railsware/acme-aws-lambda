@@ -33,7 +33,7 @@ module AcmeAwsLambda
     end
 
     def key_size
-      @key_size || 4096
+      @key_size || 2048
     end
 
     def contact_email
