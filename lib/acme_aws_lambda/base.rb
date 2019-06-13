@@ -1,11 +1,13 @@
 # frozen_string_literal: true
 
+require 'logger'
+
 module AcmeAwsLambda
   module Base
 
     extend self
 
-    attr_writer :log_level, :production_mode, :key_size, :contact_email, :domains, :common_name, :renew,
+    attr_writer :log_level, :log_formatter, :production_mode, :key_size, :contact_email, :domains, :common_name, :renew,
                 :dns_retry_timeout, :dns_retry_count, :cert_retry_timeout, :cert_retry_count,
                 :aws_access_key_id, :aws_secret_access_key, :aws_region,
                 :s3_aws_access_key_id, :s3_aws_secret_access_key, :s3_aws_region, :s3_bucket, :s3_client_key,
@@ -21,8 +23,12 @@ module AcmeAwsLambda
       @log_level || :info
     end
 
+    def log_formatter
+      @log_formatter || Logger::Formatter.new
+    end
+
     def production_mode
-      @production_mode || true
+      @production_mode || false
     end
 
     def key_size

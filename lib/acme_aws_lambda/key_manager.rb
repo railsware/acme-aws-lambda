@@ -20,6 +20,7 @@ module AcmeAwsLambda
     def initialize
       @logger = Logger.new($stdout)
       @logger.level = LOG_LEVELS[AcmeAwsLambda.log_level]
+      @logger.formatter = AcmeAwsLambda.log_formatter
       @route53 = AcmeAwsLambda::Route53.new(logger)
       @s3 = AcmeAwsLambda::S3.new(logger)
       init_aws_client
@@ -46,6 +47,9 @@ module AcmeAwsLambda
     def certificate_valid?
       certificate = s3.certificate
       return false if certificate.nil?
+
+      logger.debug "Certificate downloaded for validation check"
+      logger.debug "Certificate not_after: #{certificate.not_after.strftime('%Y-%m-%d %H:%M:%S %z')}"
 
       renew_at = ::Time.now + 60 * 60 * 24 * AcmeAwsLambda.renew
       certificate.not_after > renew_at
