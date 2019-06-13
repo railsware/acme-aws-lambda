@@ -50,14 +50,17 @@ module AcmeAwsLambda
 
     def save_certificates(common_name, key, crt)
       filename = common_name || 'cert'
-      obj = s3_resource.bucket(AcmeAwsLambda.s3_bucket).object("#{AcmeAwsLambda.s3_certificates_key}.key")
+      bucket = s3_resource.bucket(AcmeAwsLambda.s3_bucket)
+      # upload private key
+      obj = bucket.object("#{AcmeAwsLambda.s3_certificates_key}.key")
       obj.put(
         acl: 'private',
         body: key,
         content_disposition: "attachment; filename=\"#{filename}.key\"",
         content_type: 'application/x-pem-file'
       )
-      obj = s3_resource.bucket(AcmeAwsLambda.s3_bucket).object("#{AcmeAwsLambda.s3_certificates_key}.crt")
+      # upload pem certificate
+      obj = bucket.object("#{AcmeAwsLambda.s3_certificates_key}.crt")
       obj.put(
         acl: 'private',
         body: crt,
