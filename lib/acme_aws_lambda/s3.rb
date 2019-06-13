@@ -17,7 +17,9 @@ module AcmeAwsLambda
       obj = s3_resource.bucket(AcmeAwsLambda.s3_bucket).object(AcmeAwsLambda.s3_client_key)
       obj.put(
         acl: 'private',
-        body: private_key.to_pem
+        body: private_key.to_pem,
+        content_disposition: "attachment; filename=\"key.pem\"",
+        content_type: 'application/x-pem-file'
       )
       private_key
     end
@@ -50,7 +52,9 @@ module AcmeAwsLambda
       obj = s3_resource.bucket(AcmeAwsLambda.s3_bucket).object(AcmeAwsLambda.s3_certificate_key)
       obj.put(
         acl: 'private',
-        body: certificate
+        body: certificate,
+        content_disposition: "attachment; filename=\"key.pem\"",
+        content_type: 'application/x-pem-file'
       )
     end
 
