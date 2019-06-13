@@ -18,7 +18,7 @@ module AcmeAwsLambda
       obj.put(
         acl: 'private',
         body: private_key.to_pem,
-        content_disposition: "attachment; filename=\"key.pem\"",
+        content_disposition: 'attachment; filename="key.pem"',
         content_type: 'application/x-pem-file'
       )
       private_key
@@ -53,7 +53,7 @@ module AcmeAwsLambda
       obj.put(
         acl: 'private',
         body: certificate,
-        content_disposition: "attachment; filename=\"key.pem\"",
+        content_disposition: 'attachment; filename="key.pem"',
         content_type: 'application/x-pem-file'
       )
     end

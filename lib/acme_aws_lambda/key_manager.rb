@@ -48,7 +48,7 @@ module AcmeAwsLambda
       certificate = s3.certificate
       return false if certificate.nil?
 
-      logger.debug "Certificate downloaded for validation check"
+      logger.debug 'Certificate downloaded for validation check'
       logger.debug "Certificate not_after: #{certificate.not_after.strftime('%Y-%m-%d %H:%M:%S %z')}"
 
       renew_at = ::Time.now + 60 * 60 * 24 * AcmeAwsLambda.renew
