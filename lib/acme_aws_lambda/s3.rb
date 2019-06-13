@@ -54,7 +54,8 @@ module AcmeAwsLambda
       @s3_client ||= Aws::S3::Client.new(
         credentials: Aws::Credentials.new(
           AcmeAwsLambda.s3_aws_access_key_id,
-          AcmeAwsLambda.s3_aws_secret_access_key
+          AcmeAwsLambda.s3_aws_secret_access_key,
+          AcmeAwsLambda.s3_aws_session_token
         ),
         region: AcmeAwsLambda.s3_aws_region
       )
@@ -64,7 +65,8 @@ module AcmeAwsLambda
       @s3_resource ||= Aws::S3::Resource.new(
         credentials: Aws::Credentials.new(
           AcmeAwsLambda.s3_aws_access_key_id,
-          AcmeAwsLambda.s3_aws_secret_access_key
+          AcmeAwsLambda.s3_aws_secret_access_key,
+          AcmeAwsLambda.s3_aws_session_token
         ),
         region: AcmeAwsLambda.s3_aws_region
       )

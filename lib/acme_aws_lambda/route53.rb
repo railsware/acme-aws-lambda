@@ -114,7 +114,8 @@ module AcmeAwsLambda
       @route53_client ||= Aws::Route53::Client.new(
         credentials: Aws::Credentials.new(
           AcmeAwsLambda.route53_aws_access_key_id,
-          AcmeAwsLambda.route53_aws_secret_access_key
+          AcmeAwsLambda.route53_aws_secret_access_key,
+          AcmeAwsLambda.route53_aws_session_token
         ),
         region: AcmeAwsLambda.route53_aws_region
       )

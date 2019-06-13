@@ -9,10 +9,10 @@ module AcmeAwsLambda
 
     attr_writer :log_level, :log_formatter, :production_mode, :key_size, :contact_email, :domains, :common_name, :renew,
                 :dns_retry_timeout, :dns_retry_count, :cert_retry_timeout, :cert_retry_count,
-                :aws_access_key_id, :aws_secret_access_key, :aws_region,
-                :s3_aws_access_key_id, :s3_aws_secret_access_key, :s3_aws_region, :s3_bucket, :s3_client_key,
+                :aws_access_key_id, :aws_secret_access_key, :aws_session_token, :aws_region,
+                :s3_aws_access_key_id, :s3_aws_secret_access_key, :s3_aws_session_token, :s3_aws_region, :s3_bucket, :s3_client_key,
                 :s3_certificate_key,
-                :route53_aws_access_key_id, :route53_aws_secret_access_key, :route53_aws_region, :route53_domain,
+                :route53_aws_access_key_id, :route53_aws_secret_access_key, :route53_aws_session_token, :route53_aws_region, :route53_domain,
                 :route53_hosted_zone_id
 
     def configure
@@ -83,6 +83,10 @@ module AcmeAwsLambda
       @aws_secret_access_key || ENV['AWS_SECRET_ACCESS_KEY']
     end
 
+    def aws_session_token
+      @aws_session_token || ENV['AWS_SESSION_TOKEN']
+    end
+
     def aws_region
       @aws_region || ENV['AWS_REGION']
     end
@@ -97,6 +101,10 @@ module AcmeAwsLambda
 
     def s3_aws_region
       @s3_aws_region || aws_region
+    end
+
+    def s3_aws_session_token
+      @s3_aws_session_token || aws_session_token
     end
 
     def s3_bucket
@@ -117,6 +125,10 @@ module AcmeAwsLambda
 
     def route53_aws_secret_access_key
       @route53_aws_secret_access_key || aws_secret_access_key
+    end
+
+    def route53_aws_session_token
+      @route53_aws_session_token || aws_session_token
     end
 
     def route53_aws_region

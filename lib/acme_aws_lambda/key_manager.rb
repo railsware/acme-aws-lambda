@@ -135,7 +135,9 @@ module AcmeAwsLambda
     def init_aws_client
       aws_config = {
         credentials: ::Aws::Credentials.new(
-          AcmeAwsLambda.aws_access_key_id, AcmeAwsLambda.aws_secret_access_key
+          AcmeAwsLambda.aws_access_key_id,
+          AcmeAwsLambda.aws_secret_access_key,
+          AcmeAwsLambda.aws_session_token
         ),
         region: AcmeAwsLambda.aws_region,
         logger: logger,
