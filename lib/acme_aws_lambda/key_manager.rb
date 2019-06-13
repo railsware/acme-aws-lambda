@@ -56,6 +56,8 @@ module AcmeAwsLambda
     end
 
     def new_order
+      create_account
+
       order = client.new_order(identifiers: AcmeAwsLambda.domains)
 
       dns_challengers = get_all_dns_challengers(order)
@@ -160,8 +162,8 @@ module AcmeAwsLambda
       end
     end
 
-    def account
-      @account ||= client.new_account(
+    def create_account
+      client.new_account(
         contact: "mailto:#{AcmeAwsLambda.contact_email}",
         terms_of_service_agreed: true
       )
