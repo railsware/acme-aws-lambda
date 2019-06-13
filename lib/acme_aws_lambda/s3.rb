@@ -15,7 +15,10 @@ module AcmeAwsLambda
     def create_and_save_client_key
       private_key = OpenSSL::PKey::RSA.new(AcmeAwsLambda.key_size)
       obj = s3_resource.bucket(AcmeAwsLambda.s3_bucket).object(AcmeAwsLambda.s3_client_key)
-      obj.write(private_key.to_pem)
+      obj.put(
+        acl: 'private',
+        body: private_key.to_pem
+      )
       private_key
     end
 
@@ -45,7 +48,10 @@ module AcmeAwsLambda
 
     def save_certificate(certificate)
       obj = s3_resource.bucket(AcmeAwsLambda.s3_bucket).object(AcmeAwsLambda.s3_certificate_key)
-      obj.write(certificate)
+      obj.put(
+        acl: 'private',
+        body: certificate
+      )
     end
 
     private
