@@ -84,7 +84,7 @@ Metrics/ModuleLength:
   Max: 120
 
 Metrics/AbcSize:
-  Max: 18
+  Max: 20
 
 Lint/AmbiguousBlockAssociation:
   Exclude:

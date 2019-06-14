@@ -8,7 +8,7 @@ module AcmeAwsLambda
     extend self
 
     attr_writer :log_level, :log_formatter, :production_mode, :key_size, :contact_email,
-                :domains, :common_name, :renew,
+                :domains, :common_name, :renew, :same_private_key_on_renew,
                 :dns_retry_timeout, :dns_retry_count, :cert_retry_timeout, :cert_retry_count,
                 :aws_access_key_id, :aws_secret_access_key, :aws_session_token, :aws_region,
                 :s3_aws_access_key_id, :s3_aws_secret_access_key, :s3_aws_session_token,
@@ -50,6 +50,10 @@ module AcmeAwsLambda
 
     def renew
       @renew || 30
+    end
+
+    def same_private_key_on_renew
+      @same_private_key_on_renew || false
     end
 
     def dns_retry_timeout

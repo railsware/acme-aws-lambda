@@ -115,7 +115,12 @@ module AcmeAwsLambda
     end
 
     def certificate_request(order)
-      cert_private_key = OpenSSL::PKey::RSA.new(AcmeAwsLambda.key_size)
+      cert_private_key = generate_rsa_key
+      if AcmeAwsLambda.same_private_key_on_renew
+        key = s3.private_key
+        cert_private_key = key unless key.nil?
+      end
+
       common_name = AcmeAwsLambda.common_name || AcmeAwsLambda.domains[0]
 
       csr = Acme::Client::CertificateRequest.new(
@@ -176,6 +181,10 @@ module AcmeAwsLambda
         contact: "mailto:#{AcmeAwsLambda.contact_email}",
         terms_of_service_agreed: true
       )
+    end
+
+    def generate_rsa_key
+      OpenSSL::PKey::RSA.new(AcmeAwsLambda.key_size)
     end
 
   end

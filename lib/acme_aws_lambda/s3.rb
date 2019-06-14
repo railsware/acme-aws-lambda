@@ -36,6 +36,18 @@ module AcmeAwsLambda
       nil
     end
 
+    def private_key
+      response = s3_client.get_object(
+        bucket: AcmeAwsLambda.s3_bucket,
+        key: AcmeAwsLambda.certificate_private_key
+      )
+      ::OpenSSL::PKey::RSA.new(response.body.read)
+    rescue Aws::S3::Errors::NoSuchKey, Aws::S3::Errors::NotFound => e
+      logger.error 'Not found private key on s3'
+      logger.error e
+      nil
+    end
+
     def certificate
       response = s3_client.get_object(
         bucket: AcmeAwsLambda.s3_bucket,
