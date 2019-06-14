@@ -120,6 +120,14 @@ module AcmeAwsLambda
       @s3_certificates_key || raise('s3_certificates_key should be defined')
     end
 
+    def certificate_private_key
+      "#{s3_certificates_key}.key"
+    end
+
+    def certificate_pem_key
+      "#{s3_certificates_key}.crt"
+    end
+
     def route53_aws_access_key_id
       @route53_aws_access_key_id || aws_access_key_id
     end

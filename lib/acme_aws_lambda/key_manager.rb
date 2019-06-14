@@ -28,7 +28,7 @@ module AcmeAwsLambda
 
     def create_or_renew_cert
       if certificate_valid?
-        logger.info "Certificate #{AcmeAwsLambda.s3_certificates_key}.crt is still valid. Exiting..."
+        logger.info "Certificate #{AcmeAwsLambda.certificate_pem_key} is still valid. Exiting..."
         return false
       end
 
@@ -96,6 +96,8 @@ module AcmeAwsLambda
         challenge.request_validation
 
         while challenge.status == 'pending'
+          logger.debug 'Waiting chalange to complete'
+
           sleep(0.25)
           challenge.reload
         end
@@ -131,6 +133,8 @@ module AcmeAwsLambda
     def wait_order_to_complete(order)
       check_count = 0
       while order.status == 'processing'
+        logger.info "Waiting order to complete. Check: #{check_count}"
+
         raise('certificate request timeout') if check_count > AcmeAwsLambda.cert_retry_count
 
         check_count += 1
@@ -167,6 +171,7 @@ module AcmeAwsLambda
     end
 
     def create_account
+      logger.debug "Create account for #{AcmeAwsLambda.contact_email} email"
       client.new_account(
         contact: "mailto:#{AcmeAwsLambda.contact_email}",
         terms_of_service_agreed: true
