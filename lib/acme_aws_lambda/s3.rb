@@ -12,8 +12,7 @@ module AcmeAwsLambda
       @logger = logger
     end
 
-    def create_and_save_client_key
-      private_key = OpenSSL::PKey::RSA.new(AcmeAwsLambda.key_size)
+    def save_client_key(private_key)
       obj = s3_resource.bucket(AcmeAwsLambda.s3_bucket).object(AcmeAwsLambda.s3_client_key)
       obj.put(
         acl: 'private',
@@ -21,7 +20,6 @@ module AcmeAwsLambda
         content_disposition: 'attachment; filename="key.pem"',
         content_type: 'application/x-pem-file'
       )
-      private_key
     end
 
     def client_key
@@ -48,7 +46,7 @@ module AcmeAwsLambda
       nil
     end
 
-    def certificate
+    def pem_certificate
       response = s3_client.get_object(
         bucket: AcmeAwsLambda.s3_bucket,
         key: AcmeAwsLambda.certificate_pem_key

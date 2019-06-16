@@ -15,14 +15,10 @@ module AcmeAwsLambda
       debug: Logger::DEBUG
     }.freeze
 
-    attr_reader :logger, :route53, :s3
+    attr_reader :logger
 
     def initialize
-      @logger = Logger.new($stdout)
-      @logger.level = LOG_LEVELS[AcmeAwsLambda.log_level]
-      @logger.formatter = AcmeAwsLambda.log_formatter
-      @route53 = AcmeAwsLambda::Route53.new(logger)
-      @s3 = AcmeAwsLambda::S3.new(logger)
+      init_logger
       init_aws_client
     end
 
@@ -36,7 +32,7 @@ module AcmeAwsLambda
     end
 
     def revoke_certificate
-      certificate = s3.certificate
+      certificate = s3.pem_certificate
       return false if certificate.nil?
 
       client.revoke(certificate: certificate)
@@ -45,7 +41,7 @@ module AcmeAwsLambda
     private
 
     def certificate_valid?
-      certificate = s3.certificate
+      certificate = s3.pem_certificate
       return false if certificate.nil?
 
       logger.debug 'Certificate downloaded for validation check'
@@ -147,6 +143,12 @@ module AcmeAwsLambda
       end
     end
 
+    def init_logger
+      @logger = Logger.new($stdout)
+      @logger.level = LOG_LEVELS[AcmeAwsLambda.log_level]
+      @logger.formatter = AcmeAwsLambda.log_formatter
+    end
+
     def init_aws_client
       aws_config = {
         credentials: ::Aws::Credentials.new(
@@ -164,12 +166,20 @@ module AcmeAwsLambda
       ::Aws.config.update(aws_config)
     end
 
+    def route53
+      @route53 ||= AcmeAwsLambda::Route53.new(logger)
+    end
+
+    def s3
+      @s3 ||= AcmeAwsLambda::S3.new(logger)
+    end
+
     def client
       @client ||= begin
         private_key = s3.client_key
         if private_key.nil?
-          private_key = s3.create_and_save_client_key
-          raise('Error to create private key for client') if private_key.nil?
+          private_key = generate_rsa_key
+          s3.save_client_key(private_key)
         end
         Acme::Client.new(private_key: private_key, directory: AcmeAwsLambda.acme_directory)
       end
@@ -184,7 +194,7 @@ module AcmeAwsLambda
     end
 
     def generate_rsa_key
-      OpenSSL::PKey::RSA.new(AcmeAwsLambda.key_size)
+      ::OpenSSL::PKey::RSA.new(AcmeAwsLambda.key_size)
     end
 
   end
