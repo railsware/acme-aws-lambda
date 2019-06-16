@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require 'openssl'
 require 'aws-sdk-s3'
 
 module AcmeAwsLambda
@@ -16,7 +15,7 @@ module AcmeAwsLambda
       obj = s3_resource.bucket(AcmeAwsLambda.s3_bucket).object(AcmeAwsLambda.s3_client_key)
       obj.put(
         acl: 'private',
-        body: private_key.to_pem,
+        body: private_key,
         content_disposition: 'attachment; filename="key.pem"',
         content_type: 'application/x-pem-file'
       )
@@ -27,7 +26,7 @@ module AcmeAwsLambda
         bucket: AcmeAwsLambda.s3_bucket,
         key: AcmeAwsLambda.s3_client_key
       )
-      ::OpenSSL::PKey::RSA.new(response.body.read)
+      response.body.read
     rescue Aws::S3::Errors::NoSuchKey, Aws::S3::Errors::NotFound => e
       logger.error 'Not found client key on s3'
       logger.error e
@@ -39,7 +38,7 @@ module AcmeAwsLambda
         bucket: AcmeAwsLambda.s3_bucket,
         key: AcmeAwsLambda.certificate_private_key
       )
-      ::OpenSSL::PKey::RSA.new(response.body.read)
+      response.body.read
     rescue Aws::S3::Errors::NoSuchKey, Aws::S3::Errors::NotFound => e
       logger.error 'Not found private key on s3'
       logger.error e
@@ -51,7 +50,7 @@ module AcmeAwsLambda
         bucket: AcmeAwsLambda.s3_bucket,
         key: AcmeAwsLambda.certificate_pem_key
       )
-      ::OpenSSL::X509::Certificate.new(response.body.read)
+      response.body.read
     rescue Aws::S3::Errors::NoSuchKey, Aws::S3::Errors::NotFound => e
       logger.error 'Not found certificate on s3'
       logger.error e

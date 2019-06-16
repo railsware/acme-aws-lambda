@@ -32,17 +32,19 @@ module AcmeAwsLambda
     end
 
     def revoke_certificate
-      certificate = s3.pem_certificate
-      return false if certificate.nil?
+      certificate_content = s3.pem_certificate
+      return false if certificate_content.nil?
 
-      client.revoke(certificate: certificate)
+      client.revoke(certificate: string_to_pem(certificate_content))
     end
 
     private
 
     def certificate_valid?
-      certificate = s3.pem_certificate
-      return false if certificate.nil?
+      certificate_content = s3.pem_certificate
+      return false if certificate_content.nil?
+
+      certificate = string_to_pem(certificate_content)
 
       logger.debug 'Certificate downloaded for validation check'
       logger.debug "Certificate not_after: #{certificate.not_after.strftime('%Y-%m-%d %H:%M:%S %z')}"
@@ -113,8 +115,8 @@ module AcmeAwsLambda
     def certificate_request(order)
       cert_private_key = generate_rsa_key
       if AcmeAwsLambda.same_private_key_on_renew
-        key = s3.private_key
-        cert_private_key = key unless key.nil?
+        key_content = s3.private_key
+        cert_private_key = string_to_rsa(key_content) unless key_content.nil?
       end
 
       common_name = AcmeAwsLambda.common_name || AcmeAwsLambda.domains[0]
@@ -176,10 +178,12 @@ module AcmeAwsLambda
 
     def client
       @client ||= begin
-        private_key = s3.client_key
-        if private_key.nil?
+        key_content = s3.client_key
+        if key_content.nil?
           private_key = generate_rsa_key
-          s3.save_client_key(private_key)
+          s3.save_client_key(private_key.to_pem)
+        else
+          private_key = string_to_rsa(key_content)
         end
         Acme::Client.new(private_key: private_key, directory: AcmeAwsLambda.acme_directory)
       end
@@ -195,6 +199,14 @@ module AcmeAwsLambda
 
     def generate_rsa_key
       ::OpenSSL::PKey::RSA.new(AcmeAwsLambda.key_size)
+    end
+
+    def string_to_rsa(content)
+      ::OpenSSL::PKey::RSA.new(content)
+    end
+
+    def string_to_pem(content)
+      ::OpenSSL::X509::Certificate.new(content)
     end
 
   end

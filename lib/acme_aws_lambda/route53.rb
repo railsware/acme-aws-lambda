@@ -61,7 +61,7 @@ module AcmeAwsLambda
       until status == 'INSYNC'
         resp = route53_client.get_change(id: change_id)
         status = resp.change_info.status
-        next unless status != 'INSYNC'
+        next if status == 'INSYNC'
 
         logger.info "Waiting for dns change to complete on route53. check #{check_count}"
 
@@ -88,7 +88,7 @@ module AcmeAwsLambda
           end
         end
 
-        next unless all_records_updated != true
+        next if all_records_updated == true
 
         logger.info "Waiting for dns change to start working. check #{check_count}"
 
@@ -103,7 +103,10 @@ module AcmeAwsLambda
     def get_all_txt_from_record(dns_record)
       Resolv::DNS.open do |dns|
         dns.timeouts = RESOLVE_TIMEOUT
-        records = dns.getresources(Addressable::IDNA.to_ascii(dns_record), Resolv::DNS::Resource::IN::TXT)
+        records = dns.getresources(
+          Addressable::IDNA.to_ascii(dns_record),
+          Resolv::DNS::Resource::IN::TXT
+        )
         records.empty? ? [] : records.map(&:data)
       end
     rescue *RESOLVE_ERRORS
