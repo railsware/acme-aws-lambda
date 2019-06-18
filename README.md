@@ -1,8 +1,6 @@
-# AcmeAwsLambda
+# Acme Aws Lambda
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/acme/aws/lambda`. To experiment with that code, run `bin/console` for an interactive prompt.
-
-TODO: Delete this and the text above, and describe your gem
+This gem allow to create, renew or revoke Letsencrypt certificate by using AWS Lambda, AWS Route53 and AWS S3.
 
 ## Installation
 
@@ -22,7 +20,38 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+You need create file `function.rb` and add this to it:
+
+```ruby
+# this two lines fix problem with require gems in AWS lambda
+load_paths = Dir["./vendor/bundle/ruby/2.5.0/bundler/gems/**/lib"]
+$LOAD_PATH.unshift(*load_paths)
+# require gem
+require 'acme_aws_lambda'
+
+AcmeAwsLambda.configure do |config|
+  config.production_mode = true
+  config.contact_email = 'admin@example.com'
+  config.domains = ['example.com', '*.example.com']
+  config.common_name = '*.example.com'
+  config.s3_bucket = 'example.com-certificates'
+  config.s3_certificates_key = 'certificates/example.com'
+  config.route53_domain = 'example.com'
+end
+
+def handler(event:, context:)
+  AcmeAwsLambda.create_or_renew_cert
+end
+```
+
+Next you need run in terminal:
+
+```bash
+$ bundle install --path vendor/bundle --clean
+$ zip -r function.zip function.rb vendor
+```
+
+File `function.zip` need to be uploaded to AWS lambda.
 
 ## Development
 
