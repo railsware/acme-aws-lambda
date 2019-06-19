@@ -20,7 +20,7 @@ module AcmeAwsLambda
         content_disposition: 'attachment; filename="key.pem"',
         content_type: 'application/x-pem-file',
         metadata: {
-          'x-amz-meta-sha256' => Digest::SHA256.hexdigest(private_key)
+          'sha256' => Digest::SHA256.hexdigest(private_key)
         }
       )
     end
@@ -72,7 +72,7 @@ module AcmeAwsLambda
         content_disposition: "attachment; filename=\"#{filename}.key\"",
         content_type: 'application/x-pem-file',
         metadata: {
-          'x-amz-meta-sha256' => Digest::SHA256.hexdigest(key)
+          'sha256' => Digest::SHA256.hexdigest(key)
         }
       )
       # upload pem certificate
@@ -83,7 +83,7 @@ module AcmeAwsLambda
         content_disposition: "attachment; filename=\"#{filename}.crt\"",
         content_type: 'application/x-pem-file',
         metadata: {
-          'x-amz-meta-sha256' => Digest::SHA256.hexdigest(crt)
+          'sha256' => Digest::SHA256.hexdigest(crt)
         }
       )
     end
