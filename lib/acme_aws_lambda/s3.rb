@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'digest'
 require 'aws-sdk-s3'
 
 module AcmeAwsLambda
@@ -17,7 +18,10 @@ module AcmeAwsLambda
         acl: 'private',
         body: private_key,
         content_disposition: 'attachment; filename="key.pem"',
-        content_type: 'application/x-pem-file'
+        content_type: 'application/x-pem-file',
+        metadata: {
+          'Checksum' => Digest::SHA256.hexdigest(private_key)
+        }
       )
     end
 
@@ -66,7 +70,10 @@ module AcmeAwsLambda
         acl: 'private',
         body: key,
         content_disposition: "attachment; filename=\"#{filename}.key\"",
-        content_type: 'application/x-pem-file'
+        content_type: 'application/x-pem-file',
+        metadata: {
+          'Checksum' => Digest::SHA256.hexdigest(key)
+        }
       )
       # upload pem certificate
       obj = bucket.object(AcmeAwsLambda.certificate_pem_key)
@@ -74,7 +81,10 @@ module AcmeAwsLambda
         acl: 'private',
         body: crt,
         content_disposition: "attachment; filename=\"#{filename}.crt\"",
-        content_type: 'application/x-pem-file'
+        content_type: 'application/x-pem-file',
+        metadata: {
+          'Checksum' => Digest::SHA256.hexdigest(crt)
+        }
       )
     end
 
