@@ -4,6 +4,15 @@ require:
 Metrics/LineLength:
   Max: 120
 
+Style/HashEachMethods:
+  Enabled: true
+
+Style/HashTransformKeys:
+  Enabled: true
+
+Style/HashTransformValues:
+  Enabled: true
+
 Naming/RescuedExceptionsVariableName:
   Enabled: false
 
@@ -38,7 +47,7 @@ Layout/MultilineMethodCallIndentation:
   Enabled: true
   EnforcedStyle: indented
 
-Layout/AlignHash:
+Layout/HashAlignment:
   Enabled: true
   EnforcedLastArgumentHashStyle: always_ignore
 
@@ -57,7 +66,7 @@ Style/RegexpLiteral:
   EnforcedStyle: slashes
   AllowInnerSlashes: false
 
-Layout/IndentFirstHashElement:
+Layout/FirstHashElementIndentation:
   EnforcedStyle: consistent
 
 Style/Documentation:
@@ -65,7 +74,7 @@ Style/Documentation:
 
 Style/SafeNavigation:
   Enabled: true
-  Whitelist:
+  AllowedMethods:
     - present?
     - blank?
     - presence
