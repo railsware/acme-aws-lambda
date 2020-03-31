@@ -20,11 +20,11 @@ Or install it yourself as:
 
 ## Usage
 
-You need create file `function.rb` and add this to it:
+You need create file `function.rb` and add this to it (runtime: Ruby 2.7):
 
 ```ruby
 # this two lines fix problem with require gems in AWS lambda
-load_paths = Dir["./vendor/bundle/ruby/2.5.0/bundler/gems/**/lib"]
+load_paths = Dir["./vendor/bundle/ruby/2.7.0/bundler/gems/**/lib"]
 $LOAD_PATH.unshift(*load_paths)
 # require gem
 require 'acme_aws_lambda'
@@ -37,6 +37,10 @@ AcmeAwsLambda.configure do |config|
   config.s3_bucket = 'example.com-certificates'
   config.s3_certificates_key = 'certificates/example.com'
   config.route53_domain = 'example.com'
+  config.after_success = -> (data) {
+    data[:cert] # certificate
+    data[:key] # private key
+  }
 end
 
 def handler(event:, context:)
@@ -74,6 +78,7 @@ Configuration params:
 | dns_retry_count               | `15`                                         | count                                              | Max amount of DNS records check, before fail                                                                                                                                       |
 | cert_retry_timeout            | `1`                                          | seconds                                            | Timeout between check certificates is ready                                                                                                                                        |
 | cert_retry_count              | `10`                                         | count                                              | Max amount of certification ready check, before fail                                                                                                                               |
+| after_success                 | `nil`                                        | function                                           | Hook, which will be executed, if function generated new or renew certificate                                                                                                       |
 | aws_access_key_id             | `AWS_ACCESS_KEY_ID` environment variable     |                                                    | AWS access key for AWS S3 and Route53 access                                                                                                                                       |
 | aws_secret_access_key         | `AWS_SECRET_ACCESS_KEY` environment variable |                                                    | AWS secret access key for AWS S3 and Route53 access                                                                                                                                |
 | aws_session_token             | `AWS_SESSION_TOKEN` environment variable     |                                                    | AWS session token for AWS S3 and Route53 access (not required)                                                                                                                     |
