@@ -29,6 +29,8 @@ module AcmeAwsLambda
       end
 
       new_order
+
+      after_hooks
     end
 
     def revoke_certificate
@@ -207,6 +209,15 @@ module AcmeAwsLambda
 
     def string_to_pem(content)
       ::OpenSSL::X509::Certificate.new(content)
+    end
+
+    def after_hooks
+      if !AcmeAwsLambda.after_success.nil? && AcmeAwsLambda.after_success.respond_to?(:call)
+        AcmeAwsLambda.after_success.call({
+          cert: s3.pem_certificate,
+          key: s3.private_key
+        })
+      end
     end
 
   end

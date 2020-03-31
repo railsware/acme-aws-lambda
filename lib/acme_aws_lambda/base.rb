@@ -14,7 +14,8 @@ module AcmeAwsLambda
                 :s3_aws_access_key_id, :s3_aws_secret_access_key, :s3_aws_session_token,
                 :s3_aws_region, :s3_bucket, :s3_client_key, :s3_certificates_key,
                 :route53_aws_access_key_id, :route53_aws_secret_access_key, :route53_aws_session_token,
-                :route53_aws_region, :route53_domain, :route53_hosted_zone_id
+                :route53_aws_region, :route53_domain, :route53_hosted_zone_id,
+                :after_success
 
     def configure
       yield self
@@ -154,6 +155,10 @@ module AcmeAwsLambda
 
     def route53_hosted_zone_id
       @route53_hosted_zone_id
+    end
+
+    def after_success
+      @after_success || nil
     end
 
   end
