@@ -38,8 +38,8 @@ AcmeAwsLambda.configure do |config|
   config.s3_certificates_key = 'certificates/example.com'
   config.route53_domain = 'example.com'
   config.after_success = -> (data) {
-    data[:cert] # certificate
-    data[:key] # private key
+    puts data[:cert] # certificate
+    puts data[:key] # private key
   }
 end
 
